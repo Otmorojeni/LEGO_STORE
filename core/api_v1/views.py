@@ -1,15 +1,20 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.views import APIView
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
+from rest_framework.generics import ListCreateAPIView, GenericAPIView
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 
 from .models import Theme, Brand, Kit, Review
 from .serializers import ThemeSerializer, BrandSerializer, KitSerializer, ReviewSerializer
 
 from django_filters.rest_framework import DjangoFilterBackend
 
+from .permissions import CommentPermission
 
+from drf_spectacular.utils import extend_schema
+
+
+@extend_schema(request=ThemeSerializer, responses=ThemeSerializer)
 @api_view(['GET', 'POST'])
 def theme_list(request):
     if request.method == 'GET':
@@ -25,6 +30,7 @@ def theme_list(request):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+@extend_schema(request=ThemeSerializer, responses=ThemeSerializer)
 @api_view(['GET', 'DELETE', 'PATCH'])
 def theme_detail(request, pk):
     try:
@@ -62,7 +68,8 @@ class KitListCreateView(ListCreateAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class KitDetailView(APIView):
+class KitDetailView(GenericAPIView):
+    serializer_class = KitSerializer
     
     def get(self, request, pk):
         try:
@@ -92,7 +99,8 @@ class KitDetailView(APIView):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
 
-class BrandListCreateView(APIView):
+class BrandListCreateView(GenericAPIView):
+    serializer_class = BrandSerializer
 
     def get(self, request, name=None):
         if name:
@@ -110,7 +118,8 @@ class BrandListCreateView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class BrandDetailView(APIView):
+class BrandDetailView(GenericAPIView):
+    serializer_class = BrandSerializer
 
     def get(self, request, pk):
         try:
@@ -140,7 +149,11 @@ class BrandDetailView(APIView):
             return Response(status=status.HTTP_404_NOT_FOUND)
     
 
-class ReviewList(APIView):
+class ReviewList(GenericAPIView):
+    serializer_class = ReviewSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+
     def get(self, request, kit_id=None):
         if kit_id:
             reviews = Review.objects.filter(kit_id=kit_id)
@@ -152,13 +165,16 @@ class ReviewList(APIView):
     def post(self, request):
         is_many = isinstance(request.data, list)
         serializer = ReviewSerializer(data=request.data, many=is_many)
+        user = self.request.user if self.request.user.is_authenticated else None
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(user=user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
-class ReviewDetail(APIView):
+class ReviewDetail(GenericAPIView):
+    serializer_class = ReviewSerializer
+    permission_classes = [CommentPermission]
 
     def get(self, request, pk):
         try:
