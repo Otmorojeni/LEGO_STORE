@@ -100,6 +100,7 @@ class KitDetailView(GenericAPIView):
 
 
 class BrandListCreateView(GenericAPIView):
+    queryset = Brand.objects.all()
     serializer_class = BrandSerializer
 
     def get(self, request, name=None):
@@ -119,6 +120,7 @@ class BrandListCreateView(GenericAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class BrandDetailView(GenericAPIView):
+    queryset = Brand.objects.all()
     serializer_class = BrandSerializer
 
     def get(self, request, pk):
@@ -150,6 +152,7 @@ class BrandDetailView(GenericAPIView):
     
 
 class ReviewList(GenericAPIView):
+    queryset = Review.objects.all()
     serializer_class = ReviewSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
 
@@ -173,6 +176,7 @@ class ReviewList(GenericAPIView):
     
 
 class ReviewDetail(GenericAPIView):
+    queryset = Review.objects.all()
     serializer_class = ReviewSerializer
     permission_classes = [CommentPermission]
 
